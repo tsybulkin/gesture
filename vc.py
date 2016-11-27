@@ -2,6 +2,7 @@ import cv2
 import numpy as np  
 import face
 
+ALPHA = 0.1
 
 def octav(N,img): 
 	if N <= 0: return img
@@ -13,8 +14,9 @@ def demo():
 	ret,img = cap.read() 
 	img = octav(2,img)
 	prvs = cv2.cvtColor(np.fliplr(img),cv2.COLOR_BGR2GRAY)
+	next = prvs.copy()
 	diff = np.zeros_like(prvs)
-		
+
 	# define range of Ycc
 	lower_skin = np.array([80, 130, 80])
 	upper_skin = np.array([200, 175, 125])
@@ -24,18 +26,14 @@ def demo():
 	while( cap.isOpened() ) :
 		ret,img = cap.read() 
 		img = octav(2,img) 
-		img = np.fliplr(img)
-		next = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+		img = cv2.blur(np.fliplr(img),(3,3))
+		next = ((1-ALPHA)*next + ALPHA*cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)).astype('B')
+		
+		if i%5 == 0: 
+			diff = np.abs(next - prvs)
+			ret,diff = cv2.threshold(diff,160,255,cv2.THRESH_BINARY)
+			prvs = next.copy()
 
-		diff = abs(next - prvs)
-
-		#flow = cv2.calcOpticalFlowFarneback(prvs,next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-		#mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1])
-
-		#diff[...,0] = ang*180/np.pi/2
-		#diff[...,2] = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
-
-		#bgr = cv2.cvtColor(diff,cv2.COLOR_GRAY2BGR)
 		cv2.imshow('frame2',diff)
 
 		if i%30 == 0: face_coords = face.get_coords(img)		
